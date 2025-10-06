@@ -16,7 +16,7 @@ struct CLI {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Initialize a CV in the current directory
+    /// Initialize a CV file in the current directory
     Init { filename: Option<String> },
 
     /// Validate the CV file in the current directory
@@ -26,56 +26,67 @@ enum Commands {
 fn main() {
     let cli = CLI::parse();
 
-    match cli.command {
-        Some(Commands::Init { filename }) => {
-            let filename = match filename {
-                Some(name) => name,
-                None => String::from("cv.json"),
-            };
-            let cv_json = serde_json::json!({
-                "basics": {
-                    "name": "Alice",
-                    "email": "alice@example.com",
-                }
-            });
-            let cv_data = serde_json::to_string_pretty(&cv_json);
-
-            if Path::new(&filename).exists() {
-                println!("{} already exists.", filename);
-            } else {
-                fs::write(&filename, cv_data.unwrap().as_bytes()).unwrap();
-                println!("Created {}.", &filename);
-            }
-        }
-        Some(Commands::Validate { filename }) => {
-            let filename = match filename {
-                Some(name) => name,
-                None => String::from("cv.json"),
-            };
-
-            let path = Path::new(&filename);
-
-            if !path.exists() {
-                println!("{} does not exist.", filename);
-                return;
-            }
-
-            let cv_data = fs::read_to_string(path).unwrap();
-            let instance = serde_json::from_str::<Value>(&cv_data).unwrap();
-
-            let json_resume_schema = include_str!("schema.json");
-            let schema = serde_json::from_str::<Value>(&json_resume_schema).unwrap();
-
-            match jsonschema::validate(&schema, &instance) {
-                Ok(_) => {
-                    println!("{} is valid.", filename);
-                }
-                Err(err) => {
-                    eprintln!("Error: {err}");
-                    process::exit(1);
-                }
-            }
-        }
-        None => (),
+    let exit_code = match cli.command {
+        Some(Commands::Init { filename }) => run_init(filename),
+        Some(Commands::Validate { filename }) => run_validate(filename),
+        None => 1,
     };
+
+    if exit_code > 0 {
+        process::exit(exit_code);
+    }
+}
+
+fn run_init(filename: Option<String>) -> i32 {
+    let filename = match filename {
+        Some(name) => name,
+        None => String::from("cv.json"),
+    };
+    let cv_json = serde_json::json!({
+        "basics": {
+            "name": "Alice",
+            "email": "alice@example.com",
+        }
+    });
+    let cv_data = serde_json::to_string_pretty(&cv_json);
+
+    if Path::new(&filename).exists() {
+        println!("{} already exists.", filename);
+        return 1;
+    } else {
+        fs::write(&filename, cv_data.unwrap().as_bytes()).unwrap();
+        println!("Created {}.", &filename);
+        return 0;
+    }
+}
+
+fn run_validate(filename: Option<String>) -> i32 {
+    let filename = match filename {
+        Some(name) => name,
+        None => String::from("cv.json"),
+    };
+
+    let path = Path::new(&filename);
+
+    if !path.exists() {
+        println!("{} does not exist.", filename);
+        return 1;
+    }
+
+    let cv_data = fs::read_to_string(path).unwrap();
+    let instance = serde_json::from_str::<Value>(&cv_data).unwrap();
+
+    let json_resume_schema = include_str!("schema.json");
+    let schema = serde_json::from_str::<Value>(&json_resume_schema).unwrap();
+
+    match jsonschema::validate(&schema, &instance) {
+        Ok(_) => {
+            println!("{} is valid.", filename);
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Error: {err}");
+            return 1;
+        }
+    }
 }
