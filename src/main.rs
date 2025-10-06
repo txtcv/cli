@@ -1,10 +1,15 @@
+use std::default::Default;
 use std::fs;
+use std::io;
 use std::path::Path;
 use std::process;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
+use confy;
 use jsonschema;
+use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use ureq;
 
 /// txtcv is a modern and simple CV builder for folks in tech
 #[derive(Debug, Parser)]
@@ -21,6 +26,44 @@ enum Commands {
 
     /// Validate the CV file in the current directory
     Validate { filename: Option<String> },
+
+    /// Authentication
+    Auth(AuthArgs),
+}
+
+/// Manage authentication with https://txtcv.com
+#[derive(Debug, Args)]
+#[command(arg_required_else_help = true)]
+struct AuthArgs {
+    #[command(subcommand)]
+    command: Option<AuthCommands>,
+}
+
+#[derive(Debug, Subcommand)]
+enum AuthCommands {
+    /// Log in using your personal access token
+    Login,
+
+    /// Clear the currently stored personal access token
+    Logout,
+
+    /// Check whether the current personal access token is valid
+    Check,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AppConfig {
+    version: u8,
+    personal_access_token: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            version: 0,
+            personal_access_token: String::from(""),
+        }
+    }
 }
 
 fn main() {
@@ -29,6 +72,15 @@ fn main() {
     let exit_code = match cli.command {
         Some(Commands::Init { filename }) => run_init(filename),
         Some(Commands::Validate { filename }) => run_validate(filename),
+        Some(Commands::Auth(auth)) => {
+            let auth_command = auth.command.unwrap();
+
+            match auth_command {
+                AuthCommands::Login => run_auth_login(),
+                AuthCommands::Logout => run_auth_logout(),
+                AuthCommands::Check => run_auth_check(),
+            }
+        }
         None => 1,
     };
 
@@ -83,6 +135,77 @@ fn run_validate(filename: Option<String>) -> i32 {
         }
         Err(err) => {
             eprintln!("Error: {err}");
+            return 1;
+        }
+    }
+}
+
+fn run_auth_login() -> i32 {
+    let mut config: AppConfig = confy::load("txtcv", None).unwrap();
+    let mut access_token = String::new();
+
+    println!("Please enter your personal access token: ");
+    io::stdin()
+        .read_line(&mut access_token)
+        .expect("Failed to read line");
+
+    config.personal_access_token = String::from(access_token.trim());
+
+    match confy::store("txtcv", None, config) {
+        Ok(_) => {
+            println!("Logged in!");
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Error: {err}.");
+            eprintln!("Please try again.");
+            return 1;
+        }
+    };
+}
+
+fn run_auth_logout() -> i32 {
+    let mut config: AppConfig = confy::load("txtcv", None).unwrap();
+
+    config.personal_access_token = String::new();
+
+    match confy::store("txtcv", None, config) {
+        Ok(_) => {
+            println!("Logged out!");
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Error: {err}.");
+            eprintln!("Please try again.");
+            return 1;
+        }
+    };
+}
+
+fn run_auth_check() -> i32 {
+    let config: AppConfig = confy::load("txtcv", None).unwrap();
+
+    if config.personal_access_token.trim().is_empty() {
+        eprintln!("Personal Access Token is missing.");
+        eprintln!("Please run auth login and try again");
+        return 1;
+    }
+
+    let response = ureq::get("https://txtcv.com")
+        .header(
+            "Authorization",
+            format!("Bearer {token}", token = config.personal_access_token),
+        )
+        .call();
+
+    match response {
+        Ok(_) => {
+            println!("It worked!");
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Something went wrong. Please run auth login and try again.");
+            eprintln!("{:?}", err);
             return 1;
         }
     }
