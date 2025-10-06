@@ -14,15 +14,18 @@ struct CLI {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Initialize a cv.json in the current directory
-    Init,
+    Init { filename: Option<String> },
 }
 
 fn main() {
     let cli = CLI::parse();
 
     match cli.command {
-        Some(Commands::Init) => {
-            let filename = "cv.json";
+        Some(Commands::Init { filename }) => {
+            let filename = match filename {
+                Some(name) => name,
+                None => String::from("cv.json"),
+            };
             let cv_json = serde_json::json!({
                 "basics": {
                     "name": "Alice",
@@ -31,11 +34,11 @@ fn main() {
             });
             let cv_data = serde_json::to_string_pretty(&cv_json);
 
-            if Path::new(filename).exists() {
+            if Path::new(&filename).exists() {
                 println!("{} already exists.", filename);
             } else {
-                fs::write(filename, cv_data.unwrap().as_bytes()).unwrap();
-                println!("Created {}.", filename);
+                fs::write(&filename, cv_data.unwrap().as_bytes()).unwrap();
+                println!("Created {}.", &filename);
             }
         }
         None => (),
