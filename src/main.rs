@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::Path;
+use std::process;
 
 use clap::{Parser, Subcommand};
+use jsonschema;
+use serde_json::Value;
 
 /// txtcv is a modern and simple CV builder for folks in tech
 #[derive(Debug, Parser)]
@@ -13,8 +16,11 @@ struct CLI {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Initialize a cv.json in the current directory
+    /// Initialize a CV in the current directory
     Init { filename: Option<String> },
+
+    /// Validate the CV file in the current directory
+    Validate { filename: Option<String> },
 }
 
 fn main() {
@@ -39,6 +45,35 @@ fn main() {
             } else {
                 fs::write(&filename, cv_data.unwrap().as_bytes()).unwrap();
                 println!("Created {}.", &filename);
+            }
+        }
+        Some(Commands::Validate { filename }) => {
+            let filename = match filename {
+                Some(name) => name,
+                None => String::from("cv.json"),
+            };
+
+            let path = Path::new(&filename);
+
+            if !path.exists() {
+                println!("{} does not exist.", filename);
+                return;
+            }
+
+            let cv_data = fs::read_to_string(path).unwrap();
+            let instance = serde_json::from_str::<Value>(&cv_data).unwrap();
+
+            let json_resume_schema = include_str!("schema.json");
+            let schema = serde_json::from_str::<Value>(&json_resume_schema).unwrap();
+
+            match jsonschema::validate(&schema, &instance) {
+                Ok(_) => {
+                    println!("{} is valid.", filename);
+                }
+                Err(err) => {
+                    eprintln!("Error: {err}");
+                    process::exit(1);
+                }
             }
         }
         None => (),
