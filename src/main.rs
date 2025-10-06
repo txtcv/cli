@@ -42,71 +42,19 @@ fn run_init(filename: Option<String>) -> i32 {
         Some(name) => name,
         None => String::from("cv.json"),
     };
-    let cv_json = serde_json::json!({
-        "basics": {
-            "name": "Alice",
-            "label": "Staff Software Engineer | Open Source Maintainer",
-            "email": "alice@example.com",
-            "url": "https://alice.com",
-            "summary": "Passionate and experienced software engineer with expertise in developing scalable web applications",
-        },
-        "profiles": [
-            {
-                "network": "LinkedIn",
-                "username": "alice",
-                "url": "https://www.linkedin.com/in/alice",
-            }
-        ],
-        "work": [
-            {
-                "name": "Example Corp",
-                "position": "Staff Software Engineer",
-                "url": "https://example.com",
-                "startDate": "2024-01-01",
-                "summary": "Architected and led the development of a new cloud-native SaaS platform, setting technical direction and mentoring a team of 15 engineers.",
-                "highlights": [
-                    "Designed a microservices architecture that improved scalability by 200%.",
-                    "Championed the adoption of CI/CD practices, reducing deployment time by 75%."
-                ]
-            },
-        ],
-        "education": [
-            {
-                "institution": "Example University",
-                "url": "https://www.example.edu",
-                "area": "Computer Science",
-                "studyType": "Master's",
-                "startDate": "2016-09-01",
-                "endDate": "2018-06-01",
-                "score": "3.9 GPA",
-                "courses": ["Machine Learning", "Natural Language Processing"]
-            }
-        ],
-        "skills": [
-            {
-                "name": "Programming Languages",
-                "level": "Expert",
-                "keywords": ["JavaScript", "Python", "Rust"]
-            }
-        ],
-        "languages": [
-          {"language": "English", "fluency": "Native speaker"}
-        ],
-        "interests": [
-          {"name": "Open Source Contribution"},
-          {"name": "Hiking"}
-        ],
-    });
-    let cv_data = serde_json::to_string_pretty(&cv_json);
 
     if Path::new(&filename).exists() {
         println!("{} already exists.", filename);
         return 1;
-    } else {
-        fs::write(&filename, cv_data.unwrap().as_bytes()).unwrap();
-        println!("Created {}.", &filename);
-        return 0;
     }
+
+    let cv_raw = include_str!("alice.json");
+    let cv_json = serde_json::from_str::<Value>(cv_raw).unwrap();
+    let cv_pretty = serde_json::to_string_pretty(&cv_json);
+
+    fs::write(&filename, cv_pretty.unwrap().as_bytes()).unwrap();
+    println!("Initialized {}.", &filename);
+    return 0;
 }
 
 fn run_validate(filename: Option<String>) -> i32 {
@@ -122,13 +70,13 @@ fn run_validate(filename: Option<String>) -> i32 {
         return 1;
     }
 
-    let cv_data = fs::read_to_string(path).unwrap();
-    let instance = serde_json::from_str::<Value>(&cv_data).unwrap();
+    let cv_raw = fs::read_to_string(path).unwrap();
+    let cv_json = serde_json::from_str::<Value>(&cv_raw).unwrap();
 
-    let json_resume_schema = include_str!("schema.json");
-    let schema = serde_json::from_str::<Value>(&json_resume_schema).unwrap();
+    let schema_raw = include_str!("schema.json");
+    let schema_json = serde_json::from_str::<Value>(&schema_raw).unwrap();
 
-    match jsonschema::validate(&schema, &instance) {
+    match jsonschema::validate(&schema_json, &cv_json) {
         Ok(_) => {
             println!("{} is valid.", filename);
             return 0;
