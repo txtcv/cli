@@ -45,8 +45,57 @@ fn run_init(filename: Option<String>) -> i32 {
     let cv_json = serde_json::json!({
         "basics": {
             "name": "Alice",
+            "label": "Staff Software Engineer | Open Source Maintainer",
             "email": "alice@example.com",
-        }
+            "url": "https://alice.com",
+            "summary": "Passionate and experienced software engineer with expertise in developing scalable web applications",
+        },
+        "profiles": [
+            {
+                "network": "LinkedIn",
+                "username": "alice",
+                "url": "https://www.linkedin.com/in/alice",
+            }
+        ],
+        "work": [
+            {
+                "name": "Example Corp",
+                "position": "Staff Software Engineer",
+                "url": "https://example.com",
+                "startDate": "2024-01-01",
+                "summary": "Architected and led the development of a new cloud-native SaaS platform, setting technical direction and mentoring a team of 15 engineers.",
+                "highlights": [
+                    "Designed a microservices architecture that improved scalability by 200%.",
+                    "Championed the adoption of CI/CD practices, reducing deployment time by 75%."
+                ]
+            },
+        ],
+        "education": [
+            {
+                "institution": "Example University",
+                "url": "https://www.example.edu",
+                "area": "Computer Science",
+                "studyType": "Master's",
+                "startDate": "2016-09-01",
+                "endDate": "2018-06-01",
+                "score": "3.9 GPA",
+                "courses": ["Machine Learning", "Natural Language Processing"]
+            }
+        ],
+        "skills": [
+            {
+                "name": "Programming Languages",
+                "level": "Expert",
+                "keywords": ["JavaScript", "Python", "Rust"]
+            }
+        ],
+        "languages": [
+          {"language": "English", "fluency": "Native speaker"}
+        ],
+        "interests": [
+          {"name": "Open Source Contribution"},
+          {"name": "Hiking"}
+        ],
     });
     let cv_data = serde_json::to_string_pretty(&cv_json);
 
