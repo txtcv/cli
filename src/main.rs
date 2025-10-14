@@ -19,22 +19,42 @@ struct CLI {
     command: Option<Commands>,
 }
 
+/// Publish CV file to https://txtcv.com
+#[derive(Debug, Args)]
+#[command(arg_required_else_help = true)]
+struct PublishArgs {
+    #[arg(short, long)]
+    cv_id: String,
+
+    #[arg(short, long, default_value = "cv.json")]
+    filename: String,
+}
+
+#[derive(Debug, Args)]
+struct InitArgs {
+    #[arg(short, long, default_value = "cv.json")]
+    filename: String,
+}
+
+#[derive(Debug, Args)]
+struct ValidateArgs {
+    #[arg(short, long, default_value = "cv.json")]
+    filename: String,
+}
+
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Initialize a CV file in the current directory
-    Init { filename: Option<String> },
+    Init(InitArgs),
 
     /// Validate the CV file in the current directory
-    Validate { filename: Option<String> },
+    Validate(ValidateArgs),
 
     /// Authentication
     Auth(AuthArgs),
 
     /// Publish the CV file in the current directory
-    Publish {
-        cv_id: String,
-        filename: Option<String>,
-    },
+    Publish(PublishArgs),
 }
 
 /// Manage authentication with https://txtcv.com
@@ -76,8 +96,8 @@ fn main() {
     let cli = CLI::parse();
 
     let exit_code = match cli.command {
-        Some(Commands::Init { filename }) => run_init(filename),
-        Some(Commands::Validate { filename }) => run_validate(filename),
+        Some(Commands::Init(init)) => run_init(init.filename),
+        Some(Commands::Validate(validate)) => run_validate(validate.filename),
         Some(Commands::Auth(auth)) => {
             let auth_command = auth.command.unwrap();
 
@@ -87,7 +107,7 @@ fn main() {
                 AuthCommands::Check => run_auth_check(),
             }
         }
-        Some(Commands::Publish { cv_id, filename }) => run_publish(cv_id, filename),
+        Some(Commands::Publish(publish)) => run_publish(publish.cv_id, publish.filename),
         None => 1,
     };
 
@@ -96,12 +116,7 @@ fn main() {
     }
 }
 
-fn run_init(filename: Option<String>) -> i32 {
-    let filename = match filename {
-        Some(name) => name,
-        None => String::from("cv.json"),
-    };
-
+fn run_init(filename: String) -> i32 {
     if Path::new(&filename).exists() {
         println!("{} already exists.", filename);
         return 1;
@@ -116,12 +131,7 @@ fn run_init(filename: Option<String>) -> i32 {
     return 0;
 }
 
-fn run_validate(filename: Option<String>) -> i32 {
-    let filename = match filename {
-        Some(name) => name,
-        None => String::from("cv.json"),
-    };
-
+fn run_validate(filename: String) -> i32 {
     let path = Path::new(&filename);
 
     if !path.exists() {
@@ -223,12 +233,7 @@ struct PatchRequest {
     contents: Value,
 }
 
-fn run_publish(cv_id: String, filename: Option<String>) -> i32 {
-    let filename = match filename {
-        Some(name) => name,
-        None => String::from("cv.json"),
-    };
-
+fn run_publish(cv_id: String, filename: String) -> i32 {
     let path = Path::new(&filename);
 
     if !path.exists() {
