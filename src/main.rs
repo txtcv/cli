@@ -29,6 +29,12 @@ enum Commands {
 
     /// Authentication
     Auth(AuthArgs),
+
+    /// Publish the CV file in the current directory
+    Publish {
+        cv_id: String,
+        filename: Option<String>,
+    },
 }
 
 /// Manage authentication with https://txtcv.com
@@ -81,6 +87,7 @@ fn main() {
                 AuthCommands::Check => run_auth_check(),
             }
         }
+        Some(Commands::Publish { cv_id, filename }) => run_publish(cv_id, filename),
         None => 1,
     };
 
@@ -209,4 +216,65 @@ fn run_auth_check() -> i32 {
             return 1;
         }
     }
+}
+
+#[derive(Serialize)]
+struct PatchRequest {
+    contents: Value,
+}
+
+fn run_publish(cv_id: String, filename: Option<String>) -> i32 {
+    let filename = match filename {
+        Some(name) => name,
+        None => String::from("cv.json"),
+    };
+
+    let path = Path::new(&filename);
+
+    if !path.exists() {
+        eprintln!("{} does not exist", filename);
+        return 1;
+    }
+
+    let cv_raw = fs::read_to_string(path).unwrap();
+    let cv_json = serde_json::from_str::<Value>(&cv_raw).unwrap();
+
+    let schema_raw = include_str!("schema.json");
+    let schema_json = serde_json::from_str::<Value>(&schema_raw).unwrap();
+
+    match jsonschema::validate(&schema_json, &cv_json) {
+        Ok(_) => {
+            let config: AppConfig = confy::load("txtcv", None).unwrap();
+
+            if config.personal_access_token.trim().is_empty() {
+                eprintln!("Personal Access Token is missing.");
+                eprintln!("Please run auth login and try again");
+                return 1;
+            }
+
+            let body = PatchRequest { contents: cv_json };
+            let response = ureq::patch(format!("https://txtcv.com/api/cv/{cv_id}"))
+                .header(
+                    "Authorization",
+                    format!("Bearer {token}", token = config.personal_access_token),
+                )
+                .send_json(&body);
+
+            match response {
+                Ok(_) => {
+                    println!("The CV contents have been updated.");
+                    return 0;
+                }
+                Err(err) => {
+                    eprintln!("Something went wrong. Please run auth login and try again.");
+                    eprintln!("{:?}", err);
+                    return 1;
+                }
+            };
+        }
+        Err(err) => {
+            eprintln!("Error: {err}");
+            return 1;
+        }
+    };
 }
