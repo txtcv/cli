@@ -1,0 +1,24 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Run checks on ${{ matrix.target }} binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: macos-latest
+            target: macos
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run cargo check
+        run: cargo check
