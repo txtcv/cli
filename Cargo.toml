@@ -1,5 +1,8 @@
 [package]
 name = "txtcv"
+license-file = "LICENSE"
+homepage = "https://txtcv.com/cli/"
+repository = "https://github.com/txtcv/cli"
 version = "0.1.0"
 edition = "2021"
 
