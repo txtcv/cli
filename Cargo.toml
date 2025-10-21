@@ -1,10 +1,12 @@
 [package]
 name = "txtcv"
+version = "0.1.0"
 license-file = "LICENSE"
 homepage = "https://txtcv.com/cli/"
 repository = "https://github.com/txtcv/cli"
-version = "0.1.0"
 edition = "2021"
+keywords = ["cli", "resume", "curriculum-vitae", "txtcv"]
+categories = ["command-line-utilities", "config"]
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
