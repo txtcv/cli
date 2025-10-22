@@ -69,7 +69,7 @@ jobs:
     name: Publish crate to crates.io
     needs:
       - prepare
-      - build
+      - release
     strategy:
       matrix:
         include:
