@@ -1,8 +1,8 @@
 # txtcv CLI
 
-txtcv is a modern, minimal CLI for managing your txtcv CV from the terminal. It helps
-you spin up a new CV, validate it against the JSON resume schema, authenticate with
-txtcv.com, and publish updates in seconds.
+txtcv is a modern, minimal CLI program for managing your txtcv CV from the terminal. It
+helps you spin up a new CV, validate it against the JSON resume schema, authenticate
+with [txtcv.com], and publish updates in seconds.
 
 ## Features
 - `init` scaffolds a starter `cv.json` file you can customise.
@@ -11,6 +11,17 @@ txtcv.com, and publish updates in seconds.
 - `publish` uploads the contents of `cv.json` to txtcv.com using your token.
 
 ## Installation
+
+The CLI can be installed either using Homebrew or using Cargo.
+
+### Homebrew installation
+
+```sh
+brew install txtcv/tap/txtcv
+```
+
+### Cargo installation
+
 ```sh
 # build and install locally
 cargo install --path .
@@ -50,3 +61,5 @@ stored token until you run `txtcv auth logout` to clear it.
 ## Links
 - Homepage: https://txtcv.com/cli/
 - Repository: https://github.com/txtcv/cli
+
+[txtcv]: https://txtcv.com
