@@ -1,4 +1,5 @@
 use std::default::Default;
+use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -200,19 +201,17 @@ fn run_auth_logout() -> i32 {
 }
 
 fn run_auth_check() -> i32 {
-    let config: AppConfig = confy::load("txtcv", None).unwrap();
-
-    if config.personal_access_token.trim().is_empty() {
-        eprintln!("Personal Access Token is missing.");
-        eprintln!("Please run auth login and try again");
-        return 1;
-    }
+    let token = match get_personal_access_token() {
+        Some(value) => value,
+        None => {
+            eprintln!("Personal Access Token is missing.");
+            eprintln!("Please run auth login and try again");
+            return 1;
+        }
+    };
 
     let response = ureq::get("https://txtcv.com")
-        .header(
-            "Authorization",
-            format!("Bearer {token}", token = config.personal_access_token),
-        )
+        .header("Authorization", format!("Bearer {token}", token = token))
         .call();
 
     match response {
@@ -249,20 +248,18 @@ fn run_publish(cv_id: String, filename: String) -> i32 {
 
     match jsonschema::validate(&schema_json, &cv_json) {
         Ok(_) => {
-            let config: AppConfig = confy::load("txtcv", None).unwrap();
-
-            if config.personal_access_token.trim().is_empty() {
-                eprintln!("Personal Access Token is missing.");
-                eprintln!("Please run auth login and try again");
-                return 1;
-            }
+            let token = match get_personal_access_token() {
+                Some(value) => value,
+                None => {
+                    eprintln!("Personal Access Token is missing.");
+                    eprintln!("Please run auth login and try again");
+                    return 1;
+                }
+            };
 
             let body = PatchRequest { contents: cv_json };
             let response = ureq::patch(format!("https://txtcv.com/api/cv/{cv_id}"))
-                .header(
-                    "Authorization",
-                    format!("Bearer {token}", token = config.personal_access_token),
-                )
+                .header("Authorization", format!("Bearer {token}", token = token))
                 .send_json(&body);
 
             match response {
@@ -282,4 +279,25 @@ fn run_publish(cv_id: String, filename: String) -> i32 {
             return 1;
         }
     };
+}
+
+/// Returns the personal access token by checking the `TXTCV_AUTH_TOKEN` environment
+/// variable first, then falling back to the persisted config if no override exists.
+fn get_personal_access_token() -> Option<String> {
+    let key = "TXTCV_AUTH_TOKEN";
+
+    match env::var(key) {
+        Ok(value) => {
+            return Some(value);
+        }
+        Err(_) => {
+            let config: AppConfig = confy::load("txtcv", None).unwrap();
+
+            if config.personal_access_token.trim().is_empty() {
+                return None;
+            }
+
+            return Some(config.personal_access_token);
+        }
+    }
 }
