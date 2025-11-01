@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Allow reading the personal access token from the `TXTCV_AUTH_TOKEN` environment
+  variable before falling back to the config file
+
 ## 0.1.0
 
 - Initial release
