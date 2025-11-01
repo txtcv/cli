@@ -62,4 +62,4 @@ stored token until you run `txtcv auth logout` to clear it.
 - Homepage: https://txtcv.com/cli/
 - Repository: https://github.com/txtcv/cli
 
-[txtcv]: https://txtcv.com
+[txtcv.com]: https://txtcv.com
