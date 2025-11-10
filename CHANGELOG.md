@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Add `auth signup` command
+
 ## 0.2.0
 
 - Allow reading the personal access token from the `TXTCV_AUTH_TOKEN` environment
