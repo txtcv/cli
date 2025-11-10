@@ -68,6 +68,9 @@ struct AuthArgs {
 
 #[derive(Debug, Subcommand)]
 enum AuthCommands {
+    /// Sign up for an account on txtcv
+    Signup,
+
     /// Log in using your personal access token
     Login,
 
@@ -103,6 +106,7 @@ fn main() {
             let auth_command = auth.command.unwrap();
 
             match auth_command {
+                AuthCommands::Signup => run_auth_signup(),
                 AuthCommands::Login => run_auth_login(),
                 AuthCommands::Logout => run_auth_logout(),
                 AuthCommands::Check => run_auth_check(),
@@ -156,6 +160,20 @@ fn run_validate(filename: String) -> i32 {
             return 1;
         }
     }
+}
+
+fn run_auth_signup() -> i32 {
+    match webbrowser::open("https://txtcv.com/signup/") {
+        Ok(_) => {
+            println!("Click on the Github sign-in button to set up an account.");
+            return 0;
+        }
+        Err(err) => {
+            eprintln!("Error: {err}");
+            eprintln!("Please try again.");
+            return 1;
+        }
+    };
 }
 
 fn run_auth_login() -> i32 {
