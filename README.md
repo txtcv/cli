@@ -7,6 +7,7 @@ with [txtcv.com], and publish updates in seconds.
 ## Features
 - `init` scaffolds a starter `cv.json` file you can customise.
 - `validate` checks your CV against the bundled JSON Schema before you publish.
+- `convert` converts your CV between JSON and YAML formats.
 - `auth` manages your personal access token (login, logout, check).
 - `publish` uploads the contents of `cv.json` to txtcv.com using your token.
 
@@ -46,10 +47,13 @@ Typical workflow:
 # 3. Validate before publishing
  txtcv validate
 
-# 4. Authenticate with your personal access token
+# 4. (Optional) Convert to YAML format
+ txtcv convert json yaml --filename cv.json
+
+# 5. Authenticate with your personal access token
  txtcv auth login
 
-# 5. Publish updates to txtcv.com
+# 6. Publish updates to txtcv.com
  txtcv publish --cv-id <your-cv-id>
 ```
 
