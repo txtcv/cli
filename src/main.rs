@@ -10,6 +10,7 @@ use confy;
 use jsonschema;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_yaml;
 use ureq;
 
 /// txtcv is a modern and simple CV builder for folks in tech
@@ -43,6 +44,18 @@ struct ValidateArgs {
     filename: String,
 }
 
+#[derive(Debug, Args)]
+struct ConvertArgs {
+    #[arg(value_name = "FROM")]
+    from: String,
+
+    #[arg(value_name = "TO")]
+    to: String,
+
+    #[arg(short, long)]
+    filename: String,
+}
+
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Initialize a CV file in the current directory
@@ -50,6 +63,9 @@ enum Commands {
 
     /// Validate the CV file in the current directory
     Validate(ValidateArgs),
+
+    /// Convert CV between formats
+    Convert(ConvertArgs),
 
     /// Authentication
     Auth(AuthArgs),
@@ -102,6 +118,7 @@ fn main() {
     let exit_code = match cli.command {
         Some(Commands::Init(init)) => run_init(init.filename),
         Some(Commands::Validate(validate)) => run_validate(validate.filename),
+        Some(Commands::Convert(convert)) => run_convert(convert.from, convert.to, convert.filename),
         Some(Commands::Auth(auth)) => {
             let auth_command = auth.command.unwrap();
 
@@ -160,6 +177,93 @@ fn run_validate(filename: String) -> i32 {
             return 1;
         }
     }
+}
+
+fn run_convert(from: String, to: String, filename: String) -> i32 {
+    let path = Path::new(&filename);
+
+    if !path.exists() {
+        eprintln!("{} does not exist.", filename);
+        return 1;
+    }
+
+    let from_lower = from.to_lowercase();
+    let to_lower = to.to_lowercase();
+
+    // Parse the input file based on the "from" format
+    let cv_json: Value = match from_lower.as_str() {
+        "json" => {
+            let cv_raw = fs::read_to_string(path).unwrap();
+            match serde_json::from_str(&cv_raw) {
+                Ok(json) => json,
+                Err(err) => {
+                    eprintln!("Error parsing JSON: {err}");
+                    return 1;
+                }
+            }
+        }
+        "yaml" | "yml" => {
+            let cv_raw = fs::read_to_string(path).unwrap();
+            match serde_yaml::from_str(&cv_raw) {
+                Ok(json) => json,
+                Err(err) => {
+                    eprintln!("Error parsing YAML: {err}");
+                    return 1;
+                }
+            }
+        }
+        _ => {
+            eprintln!("Unsupported format: {}. Supported formats: json, yaml", from);
+            return 1;
+        }
+    };
+
+    // Generate output filename
+    let output_filename = match to_lower.as_str() {
+        "json" => filename.replace(".yaml", ".json").replace(".yml", ".json"),
+        "yaml" => filename.replace(".json", ".yaml"),
+        _ => {
+            eprintln!("Unsupported format: {}. Supported formats: json, yaml", to);
+            return 1;
+        }
+    };
+
+    // Convert to the target format and write
+    match to_lower.as_str() {
+        "json" => {
+            let json_string = match serde_json::to_string_pretty(&cv_json) {
+                Ok(s) => s,
+                Err(err) => {
+                    eprintln!("Error converting to JSON: {err}");
+                    return 1;
+                }
+            };
+            if let Err(err) = fs::write(&output_filename, json_string) {
+                eprintln!("Error writing file: {err}");
+                return 1;
+            }
+        }
+        "yaml" => {
+            let yaml_string = match serde_yaml::to_string(&cv_json) {
+                Ok(s) => s,
+                Err(err) => {
+                    eprintln!("Error converting to YAML: {err}");
+                    return 1;
+                }
+            };
+            if let Err(err) = fs::write(&output_filename, yaml_string) {
+                eprintln!("Error writing file: {err}");
+                return 1;
+            }
+        }
+        _ => {
+            eprintln!("Unsupported format: {}", to);
+            return 1;
+        }
+    }
+
+    println!("Converted {} to {}", filename, output_filename);
+    return 0;
 }
 
 fn run_auth_signup() -> i32 {
