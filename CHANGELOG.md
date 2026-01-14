@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- Add `convert json yaml` and `convert yaml json` commands to convert CV files between
+  JSON and YAML formats
+
 ## 0.3.0
 
 - Add `auth signup` command
