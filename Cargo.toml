@@ -1,6 +1,6 @@
 [package]
 name = "txtcv"
-version = "0.3.0"
+version = "0.4.0"
 description = "Command-line tool for managing CVs with txtcv"
 license-file = "LICENSE"
 homepage = "https://txtcv.com/cli/"
